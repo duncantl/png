@@ -2,8 +2,12 @@
 #include <png.h>
 
 #include <Rinternals.h>
+#include <Rdefines.h>
+
 /* for R_RGB / R_RGBA */
 #include <R_ext/GraphicsEngine.h>
+
+SEXP R_png_get_meta(png_structp png_ptr, png_infop info_ptr);
 
 typedef struct read_job {
     FILE *f;
@@ -46,7 +50,7 @@ static void free_fn(png_structp png_ptr, png_voidp ptr) {
 
 #define RX_swap32(X) (X) = (((unsigned int)X) >> 24) | ((((unsigned int)X) >> 8) & 0xff00) | (((unsigned int)X) << 24) | ((((unsigned int)X) & 0xff00) << 8)
 
-SEXP read_png(SEXP sFn, SEXP sNative) {
+SEXP read_png(SEXP sFn, SEXP sNative, SEXP metadata) {
     SEXP res = R_NilValue;
     const char *fn;
     char header[8];
@@ -271,8 +275,37 @@ SEXP read_png(SEXP sFn, SEXP sNative) {
 	    UNPROTECT(1);
 	}
     }
-    
+
+    if(LOGICAL(metadata)[0]) {
+	PROTECT(res);
+	SEXP tmp;
+	tmp = NEW_LIST(2);
+	SET_VECTOR_ELT(tmp, 0, res);
+	SET_VECTOR_ELT(tmp, 1, R_png_get_meta(png_ptr, info_ptr));
+	res = tmp;
+	UNPROTECT(1);
+    }
     png_destroy_read_struct(&png_ptr, &info_ptr, (png_infopp)NULL);
 
     return res;
+}
+
+SEXP
+R_png_get_meta(png_structp png_ptr, png_infop info_ptr)
+{
+    png_textp text;
+    int ntext = 0, i;
+    if(png_get_text(png_ptr, info_ptr, &text, &ntext) == 0) {
+	return(NEW_CHARACTER(0));
+    }
+    SEXP ans, names;
+    PROTECT(ans = NEW_CHARACTER(ntext));
+    PROTECT(names = NEW_CHARACTER(ntext));
+    for(i = 0; i < ntext; i++) {
+	SET_STRING_ELT(ans, i, mkChar(text[i].text));
+	SET_STRING_ELT(names, i, mkChar(text[i].key));
+    }
+    SET_NAMES(ans,names);
+    UNPROTECT(2);
+    return(ans);
 }

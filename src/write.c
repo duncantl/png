@@ -2,6 +2,7 @@
 #include <png.h>
 
 #include <Rinternals.h>
+#include <Rdefines.h>
 /* for R_RED, ..., R_ALPHA */
 #include <R_ext/GraphicsEngine.h>
 
@@ -66,7 +67,7 @@ static void free_fn(png_structp png_ptr, png_voidp ptr) {
 
 #define RX_swap32(X) (X) = (((unsigned int)X) >> 24) | ((((unsigned int)X) >> 8) & 0xff00) | (((unsigned int)X) << 24) | ((((unsigned int)X) & 0xff00) << 8)
 
-SEXP write_png(SEXP image, SEXP sFn) {
+SEXP write_png(SEXP image, SEXP sFn, SEXP rmeta) {
     SEXP res = R_NilValue, dims;
     const char *fn;
     int planes = 1, width, height, native = 0, raw_array = 0;
@@ -158,6 +159,22 @@ SEXP write_png(SEXP image, SEXP sFn) {
     png_set_IHDR(png_ptr, info_ptr, width, height, 8,
 		 (planes == 1) ? PNG_COLOR_TYPE_GRAY : ((planes == 2) ? PNG_COLOR_TYPE_GRAY_ALPHA : ((planes == 3) ? PNG_COLOR_TYPE_RGB : PNG_COLOR_TYPE_RGB_ALPHA)),
 		 PNG_INTERLACE_NONE, PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
+
+    /* metadata */
+    if(Rf_length(rmeta))
+    {
+	int i, n;
+	n = Rf_length(rmeta);
+	png_text metadata[n];
+//	metadata = malloc
+	for(i = 0; i < n; i++) {
+	    metadata[i].compression = PNG_TEXT_COMPRESSION_NONE;
+	    metadata[i].key = CHAR(STRING_ELT(GET_NAMES(rmeta), i));
+	    metadata[i].text = CHAR(STRING_ELT(rmeta, i));
+	}
+	png_set_text(png_ptr, info_ptr, metadata, n);
+    }
+
 
     {
 	int rowbytes = width * planes, i;
