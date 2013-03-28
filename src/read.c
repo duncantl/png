@@ -279,25 +279,28 @@ SEXP read_png(SEXP sFn, SEXP sNative, SEXP metadata) {
     if(LOGICAL(metadata)[0]) {
 	PROTECT(res);
 	SEXP tmp;
-	tmp = NEW_LIST(2);
+	PROTECT(tmp = NEW_LIST(2));
 	SET_VECTOR_ELT(tmp, 0, res);
 	SET_VECTOR_ELT(tmp, 1, R_png_get_meta(png_ptr, info_ptr));
 	res = tmp;
-	UNPROTECT(1);
+	UNPROTECT(2);
     }
     png_destroy_read_struct(&png_ptr, &info_ptr, (png_infopp)NULL);
 
     return res;
 }
 
+/* Probably should return a list rather than a character vector
+   so that we can keep binary data in metadata as raw().
+ */
 SEXP
 R_png_get_meta(png_structp png_ptr, png_infop info_ptr)
 {
     png_textp text;
     int ntext = 0, i;
-    if(png_get_text(png_ptr, info_ptr, &text, &ntext) == 0) {
+    if(png_get_text(png_ptr, info_ptr, &text, &ntext) == 0) 
 	return(NEW_CHARACTER(0));
-    }
+
     SEXP ans, names;
     PROTECT(ans = NEW_CHARACTER(ntext));
     PROTECT(names = NEW_CHARACTER(ntext));
