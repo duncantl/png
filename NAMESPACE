@@ -1,2 +1,3 @@
 useDynLib(png)
+import(base64enc)
 exportPattern(".*PNG")
