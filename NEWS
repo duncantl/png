@@ -1,5 +1,10 @@
 NEWS/Changelog
 
+0.2-0  2013-6-11
+    o	support for writing and reading metadata fields in the PNG file.
+
+    o	added a simple configuration script that fails when libpng-config is not found.
+
 0.1-4	2011-12-10
     o	writePNG() now supports binary connection as target and the
 	default target is now raw()
